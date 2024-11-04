@@ -6,9 +6,35 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import compression from 'vite-plugin-compression';
 import { visualizer } from 'rollup-plugin-visualizer';
 
+// Environment variables type
+type EnvType = {
+  VITE_APP_NAME?: string;
+  VITE_APP_SHORT_NAME?: string;
+  VITE_APP_DESCRIPTION?: string;
+  VITE_API_URL?: string;
+  VITE_PORT?: string;
+  VITE_API_TIMEOUT?: string;
+  VITE_PREVIEW_PORT?: string;
+  [key: string]: string | undefined;
+};
+
 export default defineConfig(({ mode }): UserConfig => {
-  const env = loadEnv(mode, process.cwd(), '');
+  const env = loadEnv(mode, process.cwd(), '') as unknown as EnvType;
   const isProd = mode === 'production';
+
+  // Validate required environment variables
+  const requiredEnvVars = [
+    'VITE_API_URL',
+    'VITE_APP_NAME',
+    'VITE_APP_SHORT_NAME',
+    'VITE_APP_DESCRIPTION'
+  ] as const;
+
+  requiredEnvVars.forEach(varName => {
+    if (!env[varName]) {
+      console.warn(`Warning: ${varName} is not defined in environment variables`);
+    }
+  });
 
   return {
     base: '/',
@@ -170,6 +196,8 @@ export default defineConfig(({ mode }): UserConfig => {
           entryFileNames: 'assets/[name].[hash].js',
           chunkFileNames: 'assets/[name].[hash].js',
           assetFileNames: (assetInfo) => {
+            if (!assetInfo?.name) return 'assets/[name].[hash][extname]';
+            
             if (/\.(png|jpe?g|gif|svg|webp)$/.test(assetInfo.name)) {
               return 'assets/images/[name].[hash][extname]';
             }
